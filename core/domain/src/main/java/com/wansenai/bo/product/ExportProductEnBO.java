@@ -12,7 +12,7 @@
  */
 package com.wansenai.bo.product;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import com.wansenai.bo.BigDecimalSerializerBO;
 import com.wansenai.utils.excel.ExcelExport;
 import lombok.AllArgsConstructor;
