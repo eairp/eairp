@@ -12,7 +12,7 @@
  */
 package com.wansenai.vo.receipt.retail;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import com.wansenai.bo.BigDecimalSerializerBO;
 import com.wansenai.bo.XyAxisDataBO;
 import lombok.AllArgsConstructor;

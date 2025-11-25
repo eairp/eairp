@@ -1,30 +1,19 @@
-/*
- * Copyright 2023-2025 EAIRP Team, Inc. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance
- * with the License. A copy of the License is located at
- *
- * http://opensource.wansenai.com/apache2.0/
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
- * OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions
- * and limitations under the License.
- */
 package com.wansenai.utils.redis;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
-import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 @Configuration
-@EnableCaching
 public class RedisConfig extends CachingConfigurerSupport {
 
     @Bean
@@ -32,21 +21,30 @@ public class RedisConfig extends CachingConfigurerSupport {
         RedisTemplate<Object, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        //使用Jackson2JsonRedisSerializer来序列化和反序列化redis的value值
-        //Jackson2JsonRedisSerializer serializer = new Jackson2JsonRedisSerializer(Object.class);
-        //使用Fastjson2JsonRedisSerializer来序列化和反序列化redis的value值
-        FastJson2JsonRedisSerializer serializer = new FastJson2JsonRedisSerializer(Object.class);
+        // 创建 ObjectMapper 并配置
+        ObjectMapper mapper = JsonMapper.builder()
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                // to allow serialization of "empty" POJOs (no properties to serialize)
+                // (without this setting, an exception is thrown in those cases)
+                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+                // to write java.util.Date, Calendar as number (timestamp):
+                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                // DeserializationFeature for changing how JSON is read as POJOs:
+                // to prevent exception when encountering unknown property:
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                // to allow coercion of JSON empty String ("") to null Object value:
+                .enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT)
+                .build();
 
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        mapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
-        serializer.setObjectMapper(mapper);
+        // 使用 GenericJackson2JsonRedisSerializer
+        GenericJacksonJsonRedisSerializer serializer = new GenericJacksonJsonRedisSerializer(mapper);
 
         template.setValueSerializer(serializer);
-        //使用StringRedisSerializer来序列化和反序列化redis的key值
+        template.setHashValueSerializer(serializer);
         template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+
         template.afterPropertiesSet();
         return template;
     }
-
 }

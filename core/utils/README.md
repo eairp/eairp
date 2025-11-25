@@ -5,5 +5,5 @@ Tool class code that encapsulates some specific operations.
 <dependency>
     <groupId>com.wansenai</groupId>
     <artifactId>utils</artifactId>
-    <version>2.0.4-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
 </dependency>

@@ -1,7 +1,7 @@
 package com.wansenai.vo.basic;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import com.wansenai.bo.BigDecimalSerializerBO;
 import lombok.AllArgsConstructor;
 import lombok.Data;

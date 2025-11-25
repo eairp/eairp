@@ -12,7 +12,7 @@
  */
 package com.wansenai.middleware.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.wansenai.utils.redis.RedisUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;

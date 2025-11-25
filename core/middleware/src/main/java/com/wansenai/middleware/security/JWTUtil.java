@@ -1,94 +1,172 @@
-/*
- * Copyright 2023-2025 EAIRP Team, Inc. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance
- * with the License. A copy of the License is located at
- *
- * http://opensource.wansenai.com/apache2.0/
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
- * OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions
- * and limitations under the License.
- */
 package com.wansenai.middleware.security;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.DecodedJWT;
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * <P>
- *  封装工具类
+ *  JWT工具类
  * </P>
  */
 @Component
 public class JWTUtil {
 
     /** 有效期为一天 **/
-    private static long time = 1000*60*60*24;
+    private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 24;
 
-    private static String SECRET ="token";
+    /** 密钥，建议从配置文件中读取 */
+    private static final String SECRET_STRING = "9c9gDwweAyELX3DindbyVfZbNM9bUdfD";
+
+    /** 使用更安全的密钥生成方式 */
+    private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(SECRET_STRING.getBytes());
 
     /**
      * 生成token
-     *
+     * @param userName 用户名
+     * @return token字符串
      */
     public String createToken(String userName) {
-        // 设置JWT头部
-        Map<String, Object> map = new HashMap<>();
-        map.put("alg", "HS256");
-        map.put("typ", "JWT");
-        // 创建token
-        JwtBuilder builder = Jwts.builder();
-
-        // 添加头部，可省略保持默认，默认即map中的键值对
-        return builder.setHeader(map)
-                // 设置过期时间
-                .setExpiration(new Date(System.currentTimeMillis()+time))
+        // 不需要手动设置 "alg"，signWith 会自动设置；如果需要自定义 header 可使用 setHeader(Map)
+        return Jwts.builder()
                 .claim("userName", userName)
-                .setSubject(String.valueOf(userName))
-                // 设置签名解码算法
-                .signWith(SignatureAlgorithm.HS256, SECRET)
+                .subject(userName)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(SECRET_KEY) // 使用 SecretKey，JJWT 会自动填充 alg 等头部
                 .compact();
     }
 
     /**
      * 验证token
-     * @param token
+     * @param token token字符串
+     * @return Claims对象，如果验证失败返回null
      */
-    public Claims checkToken(String token){
-        if(token == null){
+    public Claims checkToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
             return null;
         }
-        JwtParser parser = Jwts.parser();
+
         try {
-            Jws<Claims> claimsJws = parser.setSigningKey(SECRET).parseClaimsJws(token);
-            Claims claims = claimsJws.getBody();
-            // 如果解析token正常，返回claims
-            return claims;
-        }catch (Exception e) {
-            // 如果解析token抛出异常，返回null
+            return Jwts.parser()
+                    .verifyWith(SECRET_KEY)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            // token过期
+            System.err.println("Token expired: " + e.getMessage());
+            return null;
+        } catch (MalformedJwtException e) {
+            // token格式错误
+            System.err.println("Invalid token: " + e.getMessage());
+            return null;
+        } catch (SignatureException e) {
+            // 签名验证失败
+            System.err.println("Signature validation failed: " + e.getMessage());
+            return null;
+        } catch (JwtException e) {
+            // 其他JWT异常
+            System.err.println("JWT exception: " + e.getMessage());
             return null;
         }
     }
 
     /**
-     * 通过token获取用户的id
-     * @param token
-     * @return
+     * 从token中获取用户ID
+     * @param token token字符串
+     * @return 用户ID，如果解析失败返回null
      */
-    public Long getToken(String token){
-        JWTVerifier verifier = JWT.require(Algorithm.HMAC256(SECRET)).build();
-        DecodedJWT jwt = verifier.verify(token);
-        String jwtSubject = jwt.getSubject();
-        return Long.valueOf(jwtSubject);
+    public Long getUserIdFromToken(String token) {
+        Claims claims = checkToken(token);
+        if (claims == null) {
+            return null;
+        }
+
+        try {
+            // 注意：这里期望 subject 存的是用户 ID（字符串形式）。如果你实际把 subject 设为 username，
+            // 则应改用 getUsernameFromToken 而不是这个方法。
+            String subject = claims.getSubject();
+            return subject != null ? Long.valueOf(subject) : null;
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid user ID format in token: " + e.getMessage());
+            return null;
+        }
     }
 
+    /**
+     * 从token中获取用户名
+     * @param token token字符串
+     * @return 用户名，如果解析失败返回null
+     */
+    public String getUsernameFromToken(String token) {
+        Claims claims = checkToken(token);
+        if (claims == null) {
+            return null;
+        }
+
+        return claims.get("userName", String.class);
+    }
+
+    /**
+     * 检查token是否即将过期（在指定时间内）
+     * @param token token字符串
+     * @param minutes 提前检查的分钟数
+     * @return 是否即将过期
+     */
+    public boolean isTokenExpiringSoon(String token, long minutes) {
+        Claims claims = checkToken(token);
+        if (claims == null) {
+            return true;
+        }
+
+        Date expiration = claims.getExpiration();
+        long currentTime = System.currentTimeMillis();
+        long threshold = minutes * 60 * 1000; // 转换为毫秒
+
+        return (expiration.getTime() - currentTime) <= threshold;
+    }
+
+    /**
+     * 刷新token（创建新token）
+     * @param token 旧token
+     * @return 新token，如果旧token无效返回null
+     */
+    public String refreshToken(String token) {
+        Claims claims = checkToken(token);
+        if (claims == null) {
+            return null;
+        }
+
+        String userName = claims.get("userName", String.class);
+        if (userName == null) {
+            userName = claims.getSubject();
+        }
+
+        return createToken(userName);
+    }
+
+    /**
+     * 获取token的过期时间
+     * @param token token字符串
+     * @return 过期时间，如果解析失败返回null
+     */
+    public Date getExpirationDateFromToken(String token) {
+        Claims claims = checkToken(token);
+        return claims != null ? claims.getExpiration() : null;
+    }
+
+    /**
+     * 获取token的签发时间
+     * @param token token字符串
+     * @return 签发时间，如果解析失败返回null
+     */
+    public Date getIssuedAtDateFromToken(String token) {
+        Claims claims = checkToken(token);
+        return claims != null ? claims.getIssuedAt() : null;
+    }
 }

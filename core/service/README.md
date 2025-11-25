@@ -5,6 +5,6 @@ Business logic layer, which delegates specific business logic processing to the 
 <dependency>
     <groupId>com.wansenai</groupId>
     <artifactId>service</artifactId>
-    <version>2.0.4-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
 </dependency>
 ```

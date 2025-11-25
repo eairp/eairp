@@ -13,7 +13,7 @@
 package com.wansenai.vo.financial;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import com.wansenai.bo.BigDecimalSerializerBO;
 import com.wansenai.bo.CollectionBO;
 import com.wansenai.bo.FileDataBO;

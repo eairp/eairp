@@ -12,7 +12,7 @@
  */
 package com.wansenai.bo;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import lombok.Builder;
 import lombok.Data;
 
