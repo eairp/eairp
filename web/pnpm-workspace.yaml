@@ -1,4 +1,0 @@
-packages:
-  - 'internal/*'
-  - 'packages/*'
-  - 'apps/test-server'
