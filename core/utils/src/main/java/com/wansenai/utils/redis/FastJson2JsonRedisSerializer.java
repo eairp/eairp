@@ -15,12 +15,12 @@ package com.wansenai.utils.redis;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.parser.ParserConfig;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.util.Assert;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.type.TypeFactory;
 
 import java.nio.charset.Charset;
 
@@ -61,9 +61,5 @@ public class FastJson2JsonRedisSerializer<T> implements RedisSerializer<T> {
     public void setObjectMapper(ObjectMapper objectMapper) {
         Assert.notNull(objectMapper, "'objectMapper' must not be null");
         this.objectMapper = objectMapper;
-    }
-
-    protected JavaType getJavaType(Class<?> clazz) {
-        return TypeFactory.defaultInstance().constructType(clazz);
     }
 }
